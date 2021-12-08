@@ -273,7 +273,7 @@ void ovenRelayOff() {
 
 //lm35 temperature measurement
 void read_temperature(){
-  float oven_temp = analogRead(temperaturePin);
+  float value = analogRead(temperaturePin);
   value = value * 500 / 1024; // equavalent voltage in v
   oven_temp = (int) value;
   Serial.print(">>> oven temp: ");

@@ -1,5 +1,5 @@
 enum Screen {
-  screen_intro,
+  screen_home,
   screen_timer_select,
   screen_timer_fog_display,
   screen_timer_fog_start,
@@ -26,8 +26,9 @@ const byte oven_temp_address= 106;
 const int  max_fog_counter  = 300;
 const int  max_oven_counter = 480;
 const int  max_oven_temp    = 40;     // lm35 temperature range is -55cel to 150cel
-const int  oven_temp_low_error = 10;   // config temp = 40;
+const int  oven_temp_low_error = 10;  // config temp = 40;
                                       // if (temp > 40) turn off relay else if(temp < (40-oven_temp_low_error)) turn on relay
+                                      // if config temp <= 10 then minimum temp threshold is 0;
 //pins
 const byte setButtonPin     = 8;      // digital input
 const byte decButtonPin     = 9;      // digital input

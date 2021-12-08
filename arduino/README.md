@@ -32,5 +32,7 @@
 - added select screen after home screen to choose
     - fog timer
     - oven timer
-- after fog timer and oven timer completion display complete screen
+- after fog timer and oven timer completion display ~~complete~~ intro screen
 - increament cycle after oven timer complete
+- screen_intro is now screen_home
+- read config on back from config

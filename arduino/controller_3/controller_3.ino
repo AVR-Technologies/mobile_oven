@@ -1,7 +1,7 @@
 #include "EEPROM.h"
 #include "LiquidCrystal.h"
 #include "constants.h"
-Screen screen = screen_intro;
+Screen screen = screen_home;
 EditIndex editIndex = edit_cycle;
 LiquidCrystal lcd(7, 6, 5, 4, 3, 2);
 
@@ -38,7 +38,7 @@ void loop() {
 
 void screen_handle() {
   switch (screen) {
-    case screen_intro : {
+    case screen_home : {
         if (onSetButton()) {
           screen = screen_timer_select;
         } else if (onBackButton()) {
@@ -48,7 +48,7 @@ void screen_handle() {
       }
     case screen_timer_select : {
         if (onSetButton()) {
-          screen = screen_intro;
+          screen = screen_home;
         } else if (onDecButton()) {
           while (onDecButton());
           screen = screen_timer_fog_display;
@@ -56,7 +56,7 @@ void screen_handle() {
           while (onIncButton());
           screen = screen_timer_oven_display;
         } else if (onBackButton()) {
-          screen = screen_intro;
+          screen = screen_home;
         }
         break;
       }
@@ -67,7 +67,7 @@ void screen_handle() {
           start_time = millis();
           fogRelayOn();
         } else if (onBackButton()) {
-          screen = screen_intro;
+          screen = screen_home;
         }
         break;
       }
@@ -78,7 +78,7 @@ void screen_handle() {
           start_time = millis();
           ovenRelayOn();
         } else if (onBackButton()) {
-          screen = screen_intro;
+          screen = screen_home;
         }
         break;
       }
@@ -88,14 +88,14 @@ void screen_handle() {
           if (fog_counter > 0) {
             --fog_counter;
           } else {
-            screen = screen_complete;
+            screen = screen_home;
             fogRelayOff();
           }
         }
         
         if (onBackButton()) {
           fogRelayOff();
-          screen = screen_intro;
+          screen = screen_home;
         }
         break;
       }
@@ -107,7 +107,7 @@ void screen_handle() {
           if (oven_counter > 0) {
             --oven_counter;
           } else {
-            screen = screen_complete;
+            screen = screen_home;
             ovenRelayOff();
             increament_cycle();
           }
@@ -115,13 +115,13 @@ void screen_handle() {
 
         if (onBackButton()) {
           ovenRelayOff();
-          screen = screen_intro;
+          screen = screen_home;
         }
         break;
       }
     case screen_complete : {
         if (onSetButton()) {
-          screen = screen_intro;
+          screen = screen_home;
         }
         break;
       }
@@ -213,19 +213,24 @@ void config() {
         break;
       }
     default: {
+      if (onSetButton()) {
         save();
         back_from_config();
+      } else if (onBackButton()) {
+        back_from_config();
       }
+    }
   }
 }
 void back_from_config() {
-  screen = screen_intro;
+  read();
+  screen = screen_home;
   editIndex = edit_cycle;
 }
 
 void screen_print() {
   switch (screen) {
-    case screen_intro: {
+    case screen_home: {
         sprintf_P(row1, PSTR(" Unique Technology  "));
         sprintf_P(row2, PSTR("       Sangli       "));
         sprintf_P(row3, blankBuff);
