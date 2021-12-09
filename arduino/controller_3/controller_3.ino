@@ -1,8 +1,17 @@
 #include "EEPROM.h"
 #include "LiquidCrystal.h"
+#include "common.h"
 #include "constants.h"
+
 Screen screen = screen_home;
 EditIndex editIndex = edit_cycle;
+Button  setButton(setButtonPin), 
+        decButton(decButtonPin), 
+        incButton(incButtonPin), 
+        backButton(backButtonPin);
+Relay   fogRelay(fogRelayPin),
+        ovenRelay(ovenRelayPin);
+        
 LiquidCrystal lcd(7, 6, 5, 4, 3, 2);
 
 //working variable
@@ -22,9 +31,8 @@ unsigned long last_logged_on = 0;
 
 void setup() {
   Serial.begin(115200);
-  Serial.println("machine: booting");
+  Serial.println(">>> machine: booting");
   lcd.begin(20, 4);
-  pinMode(temperaturePin, INPUT);
   pinMode(fogRelayPin, OUTPUT);
   pinMode(ovenRelayPin, OUTPUT);
   read();
@@ -39,45 +47,43 @@ void loop() {
 void screen_handle() {
   switch (screen) {
     case screen_home : {
-        if (onSetButton()) {
+        if (setButton.onRelease()) {
           screen = screen_timer_select;
-        } else if (onBackButton()) {
+        } else if (backButton.onRelease()) {
           screen = screen_config;
         }
         break;
       }
     case screen_timer_select : {
-        if (onSetButton()) {
+        if (setButton.onRelease()) {
           screen = screen_home;
-        } else if (onDecButton()) {
-          while (onDecButton());
+        } else if (decButton.onRelease()) {
           screen = screen_timer_fog_display;
-        } else if (onIncButton()) {
-          while (onIncButton());
+        } else if (incButton.onRelease()) {
           screen = screen_timer_oven_display;
-        } else if (onBackButton()) {
+        } else if (backButton.onRelease()) {
           screen = screen_home;
         }
         break;
       }
     case screen_timer_fog_display : {
         fog_counter = config_fog_counter;
-        if (onSetButton()) {
+        if (setButton.onRelease()) {
           screen = screen_timer_fog_start;
           start_time = millis();
-          fogRelayOn();
-        } else if (onBackButton()) {
+          fogRelay.on();
+        } else if (backButton.onRelease()) {
           screen = screen_home;
         }
         break;
       }
     case screen_timer_oven_display : {
         oven_counter = config_oven_counter;
-        if (onSetButton())  {
+        if (setButton.onRelease())  {
           screen = screen_timer_oven_start;
           start_time = millis();
-          ovenRelayOn();
-        } else if (onBackButton()) {
+          ovenRelay.on();
+        } else if (backButton.onRelease()) {
           screen = screen_home;
         }
         break;
@@ -89,12 +95,12 @@ void screen_handle() {
             --fog_counter;
           } else {
             screen = screen_home;
-            fogRelayOff();
+            fogRelay.off();
           }
         }
-        
-        if (onBackButton()) {
-          fogRelayOff();
+
+        if (backButton.onRelease()) {
+          fogRelay.off();
           screen = screen_home;
         }
         break;
@@ -108,19 +114,19 @@ void screen_handle() {
             --oven_counter;
           } else {
             screen = screen_home;
-            ovenRelayOff();
+            ovenRelay.off();
             increament_cycle();
           }
         }
 
-        if (onBackButton()) {
-          ovenRelayOff();
+        if (backButton.onRelease()) {
+          ovenRelay.off();
           screen = screen_home;
         }
         break;
       }
     case screen_complete : {
-        if (onSetButton()) {
+        if (setButton.onRelease()) {
           screen = screen_home;
         }
         break;
@@ -135,97 +141,97 @@ void screen_handle() {
 void config() {
   switch (editIndex) {
     case edit_cycle: {
-        if (onSetButton()) {
+        if (setButton.onRelease()) {
           editIndex = edit_fog_timer;
-        } else if (onBackButton()) {
+        } else if (backButton.onRelease()) {
           back_from_config();
-        } else if (onIncButton()) {
+        } else if (incButton.onPress()) {
           delay(200);
           int counter = 0;
-          while (onIncButton() && counter <= 20){
+          while (incButton.onPress() && counter <= 20) {
             ++counter;
-            delay(80); //20mx delay in onIncButton(), total: 100
+            delay(90); //10ms delay in onIncButton(), total: 100ms
           }
-          if(counter >= 20) {
+          if (counter >= 20) {
             reset_cycle();
           }
         }
         break;
       }
     case edit_fog_timer: {
-        if (onSetButton()) {
+        if (setButton.onRelease()) {
           editIndex = edit_oven_timer;
-        } else if (onBackButton()) {
+        } else if (backButton.onRelease()) {
           back_from_config();
-        } else if (onIncButton()) {
+        } else if (incButton.onPress()) {
           delay(200);
           do {
             config_fog_counter = config_fog_counter < max_fog_counter  ? config_fog_counter + 1 : 0;
             screen_print();
-          } while (onIncButton());
-        } else if (onDecButton()) {
+          } while (incButton.onPress());
+        } else if (decButton.onPress()) {
           delay(200);
           do {
             config_fog_counter = config_fog_counter > 0 ? config_fog_counter - 1 : max_fog_counter;
             screen_print();
-          } while (onDecButton());
+          } while (decButton.onPress());
         }
         break;
       }
     case edit_oven_timer: {
-        if (onSetButton()) {
+        if (setButton.onRelease()) {
           editIndex = edit_oven_temp;
-        } else if (onBackButton()) {
+        } else if (backButton.onRelease()) {
           back_from_config();
-        } else if (onIncButton()) {
+        } else if (incButton.onPress()) {
           delay(200);
           do {
             config_oven_counter = config_oven_counter < max_oven_counter ? config_oven_counter + 1 : 0;
             screen_print();
-          } while (onIncButton());
-        } else if (onDecButton()) {
+          } while (incButton.onPress());
+        } else if (decButton.onPress()) {
           delay(200);
           do {
             config_oven_counter = config_oven_counter > 0 ? config_oven_counter - 1 : max_oven_counter;
             screen_print();
-          } while (onDecButton());
+          } while (decButton.onPress());
         }
         break;
       }
     case edit_oven_temp: {
-        if (onSetButton()) {
+        if (setButton.onRelease()) {
           editIndex = edit_complete;
-        } else if (onBackButton()) {
+        } else if (backButton.onRelease()) {
           back_from_config();
-        } else if (onDecButton()) {
+        } else if (decButton.onPress()) {
           delay(200);
           do {
             config_oven_temp = config_oven_temp > 0 ? config_oven_temp - 1 : max_oven_temp;
             screen_print();
-          } while (onDecButton());
-        } else if (onIncButton()) {
+          } while (decButton.onPress());
+        } else if (incButton.onPress()) {
           delay(200);
           do {
             config_oven_temp = config_oven_temp < max_oven_temp ? config_oven_temp + 1 : 0;
             screen_print();
-          } while (onIncButton());
+          } while (incButton.onPress());
         }
         break;
       }
     default: {
-      if (onSetButton()) {
-        save();
-        back_from_config();
-      } else if (onBackButton()) {
-        back_from_config();
+        if (setButton.onRelease()) {
+          save();
+          back_from_config();
+        } else if (backButton.onRelease()) {
+          back_from_config();
+        }
       }
-    }
   }
 }
 void back_from_config() {
   read();
-  screen = screen_home;
   editIndex = edit_cycle;
+  screen = screen_home;
 }
 
 void screen_print() {
@@ -249,7 +255,7 @@ void screen_print() {
         sprintf_P(row1, PSTR("     Fog timer      "));
         sprintf_P(row2, PSTR("Timer: %.2d:%.2d        "), (int) fog_counter / 60, (int) fog_counter % 60);
         sprintf_P(row3, blankBuff);
-        sprintf_P(row4, screen == screen_timer_fog_display ? PSTR("Start          Abort") : PSTR("               Abort"));
+        sprintf_P(row4, PSTR("%.5s          Abort"), screen == screen_timer_fog_display ? "Start" : "     ");
         break;
       }
     case screen_timer_oven_display:
@@ -257,7 +263,7 @@ void screen_print() {
         sprintf_P(row1, PSTR("     Oven timer     "));
         sprintf_P(row2, PSTR("Timer: %.2d:%.2d        "), (int) oven_counter / 60, (int) oven_counter % 60);
         sprintf_P(row3, PSTR("Temp.: %5d        "), oven_temp);
-        sprintf_P(row4, screen == screen_timer_oven_display ? PSTR("Start          Abort") : PSTR("               Abort"));
+        sprintf_P(row4, PSTR("%.5s          Abort"), screen == screen_timer_oven_display ? "Start" : "     ");
         break;
       }
     case screen_complete: {
@@ -268,21 +274,42 @@ void screen_print() {
         break;
       }
     case screen_config: {
-        sprintf_P(row1, 
-        editIndex == 0 ? PSTR(">Cycle: %.4d Reset:+") : PSTR("Cycle : %.4d Reset:+"), 
-        cycle_counter);
-        
-        sprintf_P(row2, 
-        editIndex == edit_fog_timer  ? PSTR(">Fog Timer   : %.2d:%.2d") : PSTR("Fog Timer    : %.2d:%.2d"), 
-        (int) config_fog_counter / 60, (int) config_fog_counter % 60);
-        
-        sprintf_P(row3, 
-        editIndex == edit_oven_timer ? PSTR(">Oven Timer  : %.2d:%.2d") : PSTR("Oven Timer   : %.2d:%.2d"), 
-        (int) config_oven_counter / 60, (int) config_oven_counter % 60);
-        
-        sprintf_P(row4, 
-        editIndex == edit_oven_temp  ? PSTR(">Oven Temp   : %.2d   ")   : PSTR("Oven Temp    : %.2d   "), 
-        config_oven_temp);
+        sprintf_P(row1,
+                  editIndex == 0 ? PSTR(">Cycle: %.4d Reset:+") : PSTR("Cycle : %.4d Reset:+"),
+                  cycle_counter);
+
+        sprintf_P(row2,
+                  editIndex == edit_fog_timer  ? PSTR(">Fog Timer   : %.2d:%.2d") : PSTR("Fog Timer    : %.2d:%.2d"),
+                  (int) config_fog_counter / 60, (int) config_fog_counter % 60);
+
+        sprintf_P(row3,
+                  editIndex == edit_oven_timer ? PSTR(">Oven Timer  : %.2d:%.2d") : PSTR("Oven Timer   : %.2d:%.2d"),
+                  (int) config_oven_counter / 60, (int) config_oven_counter % 60);
+
+        sprintf_P(row4,
+                  editIndex == edit_oven_temp  ? PSTR(">Oven Temp   : %.2d   ")   : PSTR("Oven Temp    : %.2d   "),
+                  config_oven_temp);
+        /*
+          sprintf_P(row1,
+                  PSTR("%.6S: %.4d Reset:+"),
+                  editIndex == 0 ? PSTR(">Cycle") : PSTR("Cycle "),
+                  cycle_counter);//9336/498
+
+          sprintf_P(row2,
+                  PSTR("%.10S   : %.2d:%.2d"),
+                  editIndex == edit_fog_timer ? PSTR(">Fog Timer") : PSTR("Fog Timer "),
+                  (int) config_fog_counter / 60, (int) config_fog_counter % 60);
+
+          sprintf_P(row3,
+                  PSTR("%.11S  : %.2d:%.2d"),
+                  editIndex == edit_oven_timer ? PSTR(">Oven Timer") : PSTR("Oven Timer "),
+                  (int) config_oven_counter / 60, (int) config_oven_counter % 60);
+
+          sprintf_P(row4,
+                  PSTR("%.10S   : %.2d   "),
+                  editIndex == edit_oven_temp ? PSTR(">Oven Temp") : PSTR("Oven Temp "),
+                  config_oven_temp);//9336/416
+        */
         break;
       }
     default : {
@@ -309,38 +336,7 @@ void screen_print() {
   }
 }
 
-// user input
-bool onBackButton() {
-  if (digitalRead(backButtonPin)) {
-    delay(10);
-    while (digitalRead(backButtonPin));
-    return true;
-  }
-  else return false;
-}
-bool onSetButton() {
-  if (digitalRead(setButtonPin)) {
-    delay(10);
-    while (digitalRead(setButtonPin));
-    return true;
-  }
-  else return false;
-}
-bool onDecButton() {
-  if (digitalRead(decButtonPin)) {
-    delay(10);
-    return true;
-  }
-  else return false;
-}
-bool onIncButton() {
-  if (digitalRead(incButtonPin)) {
-    delay(10);
-    return true;
-  }
-  else return false;
-}
-
+/*
 //fog relay
 void fogRelayOn() {
   digitalWrite(fogRelayPin, HIGH);
@@ -360,25 +356,23 @@ void ovenRelayOff() {
   digitalWrite(ovenRelayPin, LOW);
   Serial.println(F(">>> ovenRelay: turning off"));
 }
+*/
 
 //lm35 temperature measurement
 void read_temperature() {
   float value = analogRead(temperaturePin);
   value = value * 500 / 1024; // equavalent voltage in v
   oven_temp = (int) value;
-//  Serial.print(">>> oven temp: ");
-//  Serial.print(oven_temp);
-//  Serial.println(" cel");
 }
 void maintain_temperature() {
   int oven_start_temp = config_oven_temp - oven_temp_low_error;
   oven_start_temp = oven_start_temp >= 0 ? oven_start_temp : 0;
 
-  if ( oven_temp > config_oven_temp) ovenRelayOff();
-  else if (oven_temp < oven_start_temp) ovenRelayOn();
+  if ( oven_temp > config_oven_temp) ovenRelay.off();
+  else if (oven_temp < oven_start_temp) ovenRelay.on();
 }
 
-//eeprom
+//eeprom and config
 void save() {
   EEPROM.put(fog_address, config_fog_counter);
   EEPROM.put(oven_address, config_oven_counter);

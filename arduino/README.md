@@ -36,3 +36,6 @@
 - increament cycle after oven timer complete
 - screen_intro is now screen_home
 - read config on back from config
+- new common file for enums and structs
+- Button struct for all buttons handle (setButton, decButton, incButton, backButton)
+- Relay struct for all relays handle (fogRelay, ovenRelay)
