@@ -95,7 +95,7 @@ void screen_handle() {
             --fog_counter;
             float _current = read_current();
             if (_current < fogMotorCurrentThreshold) {
-              screen = screen_error();
+              screen = screen_error;
               fogRelay.off();
             }
           } else {
@@ -113,7 +113,7 @@ void screen_handle() {
     case screen_timer_oven_start : {
         maintain_temperature();
 
-        if (millis() - start_time => 1000) {
+        if (millis() - start_time >= 1000) {
           start_time = millis();
           if (oven_counter > 0) {
             --oven_counter;
@@ -355,7 +355,7 @@ float read_current() {
   if (nCurrThruResistorRMS < 1.0) {
     nCurrThruResistorRMS = 0;
   }
-  Serial.print("current: ");
+  Serial.print(F(">>> ct: current \t"));
   Serial.println(nCurrThruResistorPP);
   return (nCurrThruResistorPP);
 }
@@ -381,14 +381,14 @@ void save() {
   EEPROM.put(oven_address, config_oven_counter);
   EEPROM.put(cycle_address, cycle_counter);
   EEPROM.put(oven_temp_address, config_oven_temp);
-  Serial.println(">>> eeprom: saving config");
+  Serial.println(F(">>> eeprom: saving config"));
 }
 void read() {
   EEPROM.get(fog_address, config_fog_counter);
   EEPROM.get(oven_address, config_oven_counter);
   EEPROM.get(cycle_address, cycle_counter);
   EEPROM.get(oven_temp_address, config_oven_temp);
-  Serial.println(">>> eeprom: reading config");
+  Serial.println(F(">>> eeprom: reading config"));
 }
 
 //cycle counter
