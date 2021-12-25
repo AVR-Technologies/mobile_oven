@@ -1,5 +1,6 @@
 //constants
 const char blankBuff[21] PROGMEM = "                    ";
+const float fogMotorCurrentThreshold = 0.5;
 
 //eeprom address
 const byte fog_address      = 100;
@@ -21,6 +22,7 @@ const byte backButtonPin    = 13;     // digital input
 const byte fogRelayPin      = 12;
 const byte ovenRelayPin     = 11;
 const byte temperaturePin   = A2;
+const byte currentPin       = A3;
 //settings variable
 int config_fog_counter      = 0;      // save in eeprom // used for user input // copied to actual working variable
 int config_oven_counter     = 0;      // save in eeprom // used for user input // copied to actual working variable

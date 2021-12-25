@@ -89,10 +89,15 @@ void screen_handle() {
         break;
       }
     case screen_timer_fog_start : {
-        if (millis() > start_time + 1000) {
+        if (millis() - start_time >= 1000) {
           start_time = millis();
           if (fog_counter > 0) {
             --fog_counter;
+            float _current = read_current();
+            if (_current < fogMotorCurrentThreshold) {
+              screen = screen_error();
+              fogRelay.off();
+            }
           } else {
             screen = screen_home;
             fogRelay.off();
@@ -108,7 +113,7 @@ void screen_handle() {
     case screen_timer_oven_start : {
         maintain_temperature();
 
-        if (millis() > start_time + 1000) {
+        if (millis() - start_time => 1000) {
           start_time = millis();
           if (oven_counter > 0) {
             --oven_counter;
@@ -125,7 +130,8 @@ void screen_handle() {
         }
         break;
       }
-    case screen_complete : {
+    case screen_complete : 
+    case screen_error : {
         if (setButton.onRelease()) {
           screen = screen_home;
         }
@@ -291,6 +297,13 @@ void screen_print() {
                   config_oven_temp);
         break;
       }
+    case screen_error : {
+        sprintf_P(row1, PSTR("Error:              "));
+        sprintf_P(row2, PSTR("Fog motor error     "));
+        sprintf_P(row3, blankBuff);
+        sprintf_P(row4, PSTR("Home                "));
+        break;
+      }
     default : {
         break;
       }
@@ -329,6 +342,39 @@ void maintain_temperature() {
   else if (oven_temp < oven_start_temp) ovenRelay.on();
 }
 
+//ct current measurement
+float read_current() {
+  float nVPP = getVPP();
+  //  nVPP = (nVPP / 2) * 0.707 * 1000.0;//turn ratio : 1 : 1000
+  //  float nCurrThruResistorPP = (nVPP) / 56.0;//secondary resistance : 56
+  nVPP = (nVPP / 2) * 0.707 * 2500.0;//turn ratio : 1 : 2500
+  float nCurrThruResistorPP = (nVPP) / 110.0;//secondary resistance : 110
+  float nCurrThruResistorRMS = (nCurrThruResistorPP); //-8.06
+  float nCurrentThruWire = nCurrThruResistorRMS * 1000;
+
+  if (nCurrThruResistorRMS < 1.0) {
+    nCurrThruResistorRMS = 0;
+  }
+  Serial.print("current: ");
+  Serial.println(nCurrThruResistorPP);
+  return (nCurrThruResistorPP);
+}
+float getVPP() {              //for ac current measurement
+  int readValue;             //value read from the sensor
+  int maxValue = 0;          // store max value here
+  long int avgVal = 0;
+  uint32_t start_time = millis();
+  int i = 0;
+  while ((millis() - start_time) < 100) {
+    readValue = analogRead(currentPin);
+    avgVal = avgVal + readValue;
+    if (readValue > maxValue) maxValue = readValue;
+    i++;
+  }
+  maxValue = (maxValue - (avgVal / i));
+  return maxValue * 5.0 / 1024.0;
+}
+
 //eeprom and config
 void save() {
   EEPROM.put(fog_address, config_fog_counter);
@@ -344,6 +390,8 @@ void read() {
   EEPROM.get(oven_temp_address, config_oven_temp);
   Serial.println(">>> eeprom: reading config");
 }
+
+//cycle counter
 void reset_cycle() {
   cycle_counter = 0;
   save();// save reset counter to eeprom

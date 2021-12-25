@@ -7,6 +7,7 @@ enum Screen {
   screen_timer_oven_start,
   screen_complete,
   screen_config,
+  screen_error
 };
 
 enum EditIndex {

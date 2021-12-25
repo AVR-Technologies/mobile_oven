@@ -39,3 +39,8 @@
 - new common file for enums and structs
 - Button struct for all buttons handle (setButton, decButton, incButton, backButton)
 - Relay struct for all relays handle (fogRelay, ovenRelay)
+
+# controller 4
+- error screen added
+- ct current measurement added (for fog motor) check after fog motor turned on
+- update (millis timer check) inside screen_timer_fog_start and screen_timer_oven_start condition
