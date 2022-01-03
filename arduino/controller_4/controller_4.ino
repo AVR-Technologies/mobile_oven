@@ -21,7 +21,7 @@ char row2[21];
 char row3[21];
 char row4[21];
 //config screen
-long start_time = 0;
+long lastChanged = 0;
 //counter
 unsigned int fog_counter   = 0; // working variable // max 5 min: 300 sec//display time as min:sec
 unsigned int oven_counter  = 0; // working variable // max 8 min: 480 sec//display time as min:sec
@@ -70,7 +70,7 @@ void screen_handle() {
         fog_counter = config_fog_counter;
         if (setButton.onRelease()) {
           screen = screen_timer_fog_start;
-          start_time = millis();
+          resetMsDelay();
           fogRelay.on();
         } else if (backButton.onRelease()) {
           screen = screen_home;
@@ -81,7 +81,7 @@ void screen_handle() {
         oven_counter = config_oven_counter;
         if (setButton.onRelease())  {
           screen = screen_timer_oven_start;
-          start_time = millis();
+          resetMsDelay();
           ovenRelay.on();
         } else if (backButton.onRelease()) {
           screen = screen_home;
@@ -89,8 +89,7 @@ void screen_handle() {
         break;
       }
     case screen_timer_fog_start : {
-        if (millis() - start_time >= 1000) {
-          start_time = millis();
+        if (onMsDelayPass(1000)) {
           if (fog_counter > 0) {
             --fog_counter;
             float _current = read_current();
@@ -113,8 +112,7 @@ void screen_handle() {
     case screen_timer_oven_start : {
         maintain_temperature();
 
-        if (millis() - start_time >= 1000) {
-          start_time = millis();
+        if (onMsDelayPass(1000)) {
           if (oven_counter > 0) {
             --oven_counter;
           } else {
@@ -130,7 +128,7 @@ void screen_handle() {
         }
         break;
       }
-    case screen_complete : 
+    case screen_complete :
     case screen_error : {
         if (setButton.onRelease()) {
           screen = screen_home;
@@ -280,21 +278,35 @@ void screen_print() {
         break;
       }
     case screen_config: {
-        sprintf_P(row1,
-                  editIndex == 0 ? PSTR(">Cycle: %.4d Reset:+") : PSTR("Cycle : %.4d Reset:+"),
+        sprintf_P(row1, PSTR("%.6s: %.4d Reset:+"),
+                  editIndex == 0 ? ">Cycle" : "Cycle ",
                   cycle_counter);
-
-        sprintf_P(row2,
-                  editIndex == edit_fog_timer  ? PSTR(">Fog Timer   : %.2d:%.2d") : PSTR("Fog Timer    : %.2d:%.2d"),
-                  (int) config_fog_counter / 60, (int) config_fog_counter % 60);
-
-        sprintf_P(row3,
-                  editIndex == edit_oven_timer ? PSTR(">Oven Timer  : %.2d:%.2d") : PSTR("Oven Timer   : %.2d:%.2d"),
-                  (int) config_oven_counter / 60, (int) config_oven_counter % 60);
-
-        sprintf_P(row4,
-                  editIndex == edit_oven_temp  ? PSTR(">Oven Temp   : %.2d   ")   : PSTR("Oven Temp    : %.2d   "),
+        sprintf_P(row2, PSTR("%.10s   : %.2d:%.2d"),
+                  editIndex == edit_fog_timer ? ">Fog Timer" : "Fog Timer ",
+                  (int) config_fog_counter / 60,
+                  (int) config_fog_counter % 60);
+        sprintf_P(row3, PSTR("%.11s  : %.2d:%.2d"),
+                  editIndex == edit_oven_timer ? ">Oven Timer" : "Oven Timer ",
+                  (int) config_oven_counter / 60,
+                  (int) config_oven_counter % 60);
+        sprintf_P(row4, PSTR("%.10s   : %.2d   "),
+                  editIndex == edit_oven_temp ? ">Oven Temp" : "Oven Temp ",
                   config_oven_temp);
+        //        sprintf_P(row1,
+        //                  editIndex == 0 ? PSTR(">Cycle: %.4d Reset:+") : PSTR("Cycle : %.4d Reset:+"),
+        //                  cycle_counter);
+        //
+        //        sprintf_P(row2,
+        //                  editIndex == edit_fog_timer  ? PSTR(">Fog Timer   : %.2d:%.2d") : PSTR("Fog Timer    : %.2d:%.2d"),
+        //                  (int) config_fog_counter / 60, (int) config_fog_counter % 60);
+        //
+        //        sprintf_P(row3,
+        //                  editIndex == edit_oven_timer ? PSTR(">Oven Timer  : %.2d:%.2d") : PSTR("Oven Timer   : %.2d:%.2d"),
+        //                  (int) config_oven_counter / 60, (int) config_oven_counter % 60);
+        //
+        //        sprintf_P(row4,
+        //                  editIndex == edit_oven_temp  ? PSTR(">Oven Temp   : %.2d   ")   : PSTR("Oven Temp    : %.2d   "),
+        //                  config_oven_temp);
         break;
       }
     case screen_error : {
@@ -399,4 +411,16 @@ void reset_cycle() {
 void increament_cycle() {
   cycle_counter = cycle_counter < 10000 ? cycle_counter + 1 : 0;
   save();// save increased counter to eeprom
+}
+// millis
+void resetMsDelay() {
+  lastChanged = millis();
+}
+bool onMsDelayPass(int _time) {
+  if (millis() > lastChanged + _time) {
+    resetMsDelay();
+    return true;
+  } else {
+    return false;
+  }
 }
