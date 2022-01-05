@@ -2,15 +2,12 @@
 #include "LiquidCrystal.h"
 #include "common.h"
 #include "constants.h"
-
+#include "Wire.h"
 Screen screen = screen_home;
 EditIndex editIndex = edit_cycle;
-Button  setButton(setButtonPin),
-        decButton(decButtonPin),
-        incButton(incButtonPin),
-        backButton(backButtonPin);
-Relay   fogRelay(fogRelayPin),
-        ovenRelay(ovenRelayPin);
+I2cCommand command = i2c_null;
+Relay fogRelay(fogRelayPin),
+      ovenRelay(ovenRelayPin);
 
 LiquidCrystal lcd(7, 6, 5, 4, 3, 2);
 
@@ -27,6 +24,8 @@ unsigned int oven_temp     = 0; // working variable // max   cel:
 unsigned long last_logged_on = 0;
 
 void setup() {
+  Wire.begin(i2c_address);
+  Wire.onReceive(receiveEvent); // register event
   Serial.begin(115200);
   Serial.println(">>> machine: booting");
   lcd.begin(20, 4);
@@ -44,43 +43,53 @@ void loop() {
 void screen_handle() {
   switch (screen) {
     case screen_home : {
-        if (setButton.onRelease()) {
+        if (command == i2c_set) {
+          command = i2c_null;
           screen = screen_timer_select;
-        } else if (backButton.onRelease()) {
+        } else if (command == i2c_back) {
+          command = i2c_null;
           screen = screen_config;
         }
         break;
       }
     case screen_timer_select : {
-        if (setButton.onRelease()) {
+        if (command == i2c_set) {
+          command = i2c_null;
           screen = screen_home;
-        } else if (decButton.onRelease()) {
+        } else if (command == i2c_dec) {
+          command = i2c_null;
           screen = screen_timer_fog_display;
-        } else if (incButton.onRelease()) {
+        } else if (command == i2c_inc) {
+          command = i2c_null;
           screen = screen_timer_oven_display;
-        } else if (backButton.onRelease()) {
+        } else if (command == i2c_back) {
+          command = i2c_null;
           screen = screen_home;
         }
         break;
       }
     case screen_timer_fog_display : {
         fog_counter = config_fog_counter;
-        if (setButton.onRelease()) {
+        if (command == i2c_set) {
+          command = i2c_null;
           screen = screen_timer_fog_start;
           resetMsDelay();
           fogRelay.on();
-        } else if (backButton.onRelease()) {
+        } else if (command == i2c_back) {
+          command = i2c_null;
           screen = screen_home;
         }
         break;
       }
     case screen_timer_oven_display : {
         oven_counter = config_oven_counter;
-        if (setButton.onRelease())  {
+        if (command == i2c_set) {
+          command = i2c_null;
           screen = screen_timer_oven_start;
           resetMsDelay();
           ovenRelay.on();
-        } else if (backButton.onRelease()) {
+        } else if (command == i2c_back) {
+          command = i2c_null;
           screen = screen_home;
         }
         break;
@@ -99,8 +108,8 @@ void screen_handle() {
             fogRelay.off();
           }
         }
-
-        if (backButton.onRelease()) {
+        if (command == i2c_back) {
+          command = i2c_null;
           fogRelay.off();
           screen = screen_home;
         }
@@ -119,7 +128,8 @@ void screen_handle() {
           }
         }
 
-        if (backButton.onRelease()) {
+        if (command == i2c_back) {
+          command = i2c_null;
           ovenRelay.off();
           screen = screen_home;
         }
@@ -127,7 +137,8 @@ void screen_handle() {
       }
     case screen_complete :
     case screen_error : {
-        if (setButton.onRelease()) {
+        if (command == i2c_set) {
+          command = i2c_null;
           screen = screen_home;
         }
         break;
@@ -142,93 +153,79 @@ void screen_handle() {
 void config() {
   switch (editIndex) {
     case edit_cycle: {
-        if (setButton.onRelease()) {
+        if (command == i2c_set) {
+          command = i2c_null;
           editIndex = edit_fog_timer;
-        } else if (backButton.onRelease()) {
+        } else if (command == i2c_back) {
+          command = i2c_null;
           back_from_config();
-        } else if (incButton.onPress()) {
-          waitForButtonRelease();                         // 200ms delay
-          int counter = 0;
-          while (incButton.onPress() && counter <= 18) { // already 200ms delay: so count to 18 instead of 20
-            ++counter;
-            delay(90); //10ms delay in onIncButton(), total: 100ms
-          }
-          if (counter >= 18) {
-            reset_cycle();
-          }
+        } else if (command == i2c_inc) {
+          command = i2c_null;
+          reset_cycle();
         }
         break;
       }
     case edit_fog_timer: {
-        if (setButton.onRelease()) {
+        if (command == i2c_set) {
+          command = i2c_null;
           editIndex = edit_oven_timer;
-        } else if (backButton.onRelease()) {
+        } else if (command == i2c_back) {
+          command = i2c_null;
           back_from_config();
-        } else if (incButton.onPress()) {
-          waitForButtonRelease();
-          do {
-            config_fog_counter = config_fog_counter < max_fog_counter  ? config_fog_counter + 1 : 0;
-            screen_print();
-          } while (incButton.onPress());
-        } else if (decButton.onPress()) {
-          waitForButtonRelease();
-          do {
-            config_fog_counter = config_fog_counter > 0 ? config_fog_counter - 1 : max_fog_counter;
-            screen_print();
-          } while (decButton.onPress());
+        } else if (command == i2c_inc) {
+          command = i2c_null;
+          config_fog_counter = config_fog_counter < max_fog_counter  ? config_fog_counter + 1 : 0;
+        } else if (command == i2c_dec) {
+          command = i2c_null;
+          config_fog_counter = config_fog_counter > 0 ? config_fog_counter - 1 : max_fog_counter;
         }
         break;
       }
     case edit_oven_timer: {
-        if (setButton.onRelease()) {
+        if (command == i2c_set) {
+          command = i2c_null;
           editIndex = edit_oven_temp;
-        } else if (backButton.onRelease()) {
+        } else if (command == i2c_back) {
+          command = i2c_null;
           back_from_config();
-        } else if (incButton.onPress()) {
-          waitForButtonRelease();
-          do {
-            config_oven_counter = config_oven_counter < max_oven_counter ? config_oven_counter + 1 : 0;
-            screen_print();
-          } while (incButton.onPress());
-        } else if (decButton.onPress()) {
-          waitForButtonRelease();
-          do {
-            config_oven_counter = config_oven_counter > 0 ? config_oven_counter - 1 : max_oven_counter;
-            screen_print();
-          } while (decButton.onPress());
+        } else if (command == i2c_inc) {
+          command = i2c_null;
+          config_oven_counter = config_oven_counter < max_oven_counter ? config_oven_counter + 1 : 0;
+        } else if (command == i2c_dec) {
+          command = i2c_null;
+          config_oven_counter = config_oven_counter > 0 ? config_oven_counter - 1 : max_oven_counter;
         }
         break;
       }
     case edit_oven_temp: {
-        if (setButton.onRelease()) {
+        if (command == i2c_set) {
+          command = i2c_null;
           editIndex = edit_complete;
-        } else if (backButton.onRelease()) {
+        } else if (command == i2c_back) {
+          command = i2c_null;
           back_from_config();
-        } else if (decButton.onPress()) {
-          waitForButtonRelease();
-          do {
-            config_oven_temp = config_oven_temp > 0 ? config_oven_temp - 1 : max_oven_temp;
-            screen_print();
-          } while (decButton.onPress());
-        } else if (incButton.onPress()) {
-          waitForButtonRelease();
-          do {
-            config_oven_temp = config_oven_temp < max_oven_temp ? config_oven_temp + 1 : 0;
-            screen_print();
-          } while (incButton.onPress());
+        } else if (command == i2c_inc) {
+          command = i2c_null;
+          config_oven_temp = config_oven_temp < max_oven_temp ? config_oven_temp + 1 : 0;
+        } else if (command == i2c_dec) {
+          command = i2c_null;
+          config_oven_temp = config_oven_temp > 0 ? config_oven_temp - 1 : max_oven_temp;
         }
         break;
       }
     default: {
-        if (setButton.onRelease()) {
+        if (command == i2c_set) {
+          command = i2c_null;
           save();
           back_from_config();
-        } else if (backButton.onRelease()) {
+        } else if (command == i2c_back) {
+          command = i2c_null;
           back_from_config();
         }
       }
   }
 }
+
 void back_from_config() {
   read();
   editIndex = edit_cycle;
@@ -410,4 +407,21 @@ void reset_cycle() {
 void increament_cycle() {
   cycle_counter = cycle_counter < 10000 ? cycle_counter + 1 : 0;
   save();// save increased counter to eeprom
+}
+//i2c
+void receiveEvent(int howMany) {
+  byte buff[howMany];
+  Wire.readBytes(buff, howMany);
+  if (howMany == 1) {
+    command =
+      buff[0] == (int)i2c_inc
+      ? i2c_inc
+      : buff[0] == (int)i2c_dec
+      ? i2c_dec
+      : buff[0] == (int)i2c_set
+      ? i2c_set
+      : buff[0] == (int)i2c_back
+      ? i2c_back
+      : i2c_null;
+  }
 }

@@ -18,39 +18,23 @@ enum EditIndex {
   edit_complete
 };
 
-void waitForButtonRelease(){
-  delay(200);
-}
-
-struct Button {
-  byte pin;
-  Button(byte _pin): pin(_pin) {}
-
-  bool onPress() {
-    if (digitalRead(pin)) {
-      delay(10);
-      return true;
-    } else return false;
-  }
-
-  bool onRelease() {
-    if (digitalRead(pin)) {
-      delay(10);
-      while (digitalRead(pin));
-      return true;
-    } else return false;
-  }
+enum I2cCommand {
+  i2c_null = 0,
+  i2c_inc = 1,
+  i2c_dec = 2,
+  i2c_set = 3,
+  i2c_back = 4,
 };
 
-struct Relay{
+struct Relay {
   byte pin;
-  Relay(byte _pin) : pin(_pin){
+  Relay(byte _pin) : pin(_pin) {
     pinMode(pin, OUTPUT);
   }
-  void on(){
+  void on() {
     digitalWrite(pin, HIGH);
   }
-  void off(){
+  void off() {
     digitalWrite(pin, LOW);
   }
 };
