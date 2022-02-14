@@ -1,5 +1,8 @@
 # init
 - init controller for eeprom data
+# init 2
+- same as init 
+- oven_temp_address option added
 
 # controller
 - user input using buttons (on config page)
@@ -44,3 +47,11 @@
 - error screen added
 - ct current measurement added (for fog motor) check after fog motor turned on
 - update (millis timer check) inside screen_timer_fog_start and screen_timer_oven_start condition
+
+# controller 4 only i2c
+- only for handling over i2c
+- button access/code removed
+
+# controller 5
+- select and start fog motor with dec_button, select and start oven with inc_button (before started with set button)
+- reset to default screen added press and hold (-) button from config screen with cursor (>) on cycle option 
