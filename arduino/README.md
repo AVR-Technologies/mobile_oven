@@ -55,3 +55,9 @@
 # controller 5
 - select and start fog motor with dec_button, select and start oven with inc_button (before started with set button)
 - reset to default screen added press and hold (-) button from config screen with cursor (>) on cycle option 
+- with i2c handling
+
+# controller 6
+- fog start confirm (screen_timer_fog_display) and oven start confirm (screen_timer_oven_display) screens removed
+- screen_complete removed as it is not used instead...
+- fog completed and oven completed screens added

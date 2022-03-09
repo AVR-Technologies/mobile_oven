@@ -1,11 +1,10 @@
 enum Screen {
   screen_home,
   screen_timer_select,
-  screen_timer_fog_display,
   screen_timer_fog_start,
-  screen_timer_oven_display,
+  screen_timer_fog_completed,
   screen_timer_oven_start,
-  screen_complete,
+  screen_timer_oven_completed,
   screen_config,
   screen_reset_to_default,
   screen_error
@@ -51,17 +50,17 @@ struct Button {
 
 struct Relay {
   byte pin;
-byte value;
+  byte value;
   Relay(byte _pin) : pin(_pin) {
     pinMode(pin, OUTPUT);
   }
   void on() {
-//    Serial.println("on");
+    //    Serial.println("on");
     value = 1;
     digitalWrite(pin, HIGH);
   }
   void off() {
-//    Serial.println("off");
+    //    Serial.println("off");
     value = 0;
     digitalWrite(pin, LOW);
   }

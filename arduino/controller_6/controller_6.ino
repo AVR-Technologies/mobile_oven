@@ -44,14 +44,6 @@ void loop() {
   screen_handle();
   screen_print();
 }
-void resetLCD(void) {
-//  lcd.clear();
-//  delay(100);
-//  lcd.begin(20, 4);
-//  delay(100);
-//  lcd.clear();
-//  screen_print();
-}
 void screen_handle() {
   switch (screen) {
     case screen_home : {
@@ -69,51 +61,17 @@ void screen_handle() {
         break;
       }
     case screen_timer_select : {
+        fog_counter = config_fog_counter;
+        oven_counter = config_oven_counter;
         if (command == i2c_set) {
           command = i2c_null;
           screen = screen_home;
         } else if (command == i2c_dec) {
           command = i2c_null;
-          screen = screen_timer_fog_display;
+          screen = screen_timer_fog_start;
+          resetMsDelay();
+          fogRelay.on();
         } else if (command == i2c_inc) {
-          command = i2c_null;
-          screen = screen_timer_oven_display;
-        } else if (command == i2c_back) {
-          command = i2c_null;
-          screen = screen_home;
-        } else if (setButton.onRelease()) {
-          screen = screen_home;
-        } else if (decButton.onRelease()) {
-          screen = screen_timer_fog_display;
-        } else if (incButton.onRelease()) {
-          screen = screen_timer_oven_display;
-        } else if (backButton.onRelease()) {
-          screen = screen_home;
-        }
-        break;
-      }
-    case screen_timer_fog_display : {
-        fog_counter = config_fog_counter;
-        if (command == i2c_dec) {
-          command = i2c_null;
-          screen = screen_timer_fog_start;
-          resetMsDelay();
-          fogRelay.on();
-        } else if (command == i2c_back) {
-          command = i2c_null;
-          screen = screen_home;
-        } else if (decButton.onRelease()) {
-          screen = screen_timer_fog_start;
-          resetMsDelay();
-          fogRelay.on();
-        } else if (backButton.onRelease()) {
-          screen = screen_home;
-        }
-        break;
-      }
-    case screen_timer_oven_display : {
-        oven_counter = config_oven_counter;
-        if (command == i2c_inc) {
           command = i2c_null;
           screen = screen_timer_oven_start;
           resetMsDelay();
@@ -121,7 +79,13 @@ void screen_handle() {
         } else if (command == i2c_back) {
           command = i2c_null;
           screen = screen_home;
-        } else if (incButton.onRelease())  {
+        } else if (setButton.onRelease()) {
+          screen = screen_home;
+        } else if (decButton.onRelease()) {
+          screen = screen_timer_fog_start;
+          resetMsDelay();
+          fogRelay.on();
+        } else if (incButton.onRelease()) {
           screen = screen_timer_oven_start;
           resetMsDelay();
           ovenRelay.on();
@@ -140,7 +104,7 @@ void screen_handle() {
               fogRelay.off();
             }
           } else {
-            screen = screen_home;
+            screen = screen_timer_fog_completed;
             fogRelay.off();
           }
         }
@@ -169,7 +133,7 @@ void screen_handle() {
               ovenRelay.off();
             }
           } else {
-            screen = screen_home;
+            screen = screen_timer_oven_completed;
             ovenRelay.off();
             increament_cycle();
           }
@@ -185,7 +149,6 @@ void screen_handle() {
         }
         break;
       }
-    case screen_complete :
     case screen_error : {
         if (command == i2c_set) {
           command = i2c_null;
@@ -397,26 +360,32 @@ void screen_print() {
         delay(100);
         break;
       }
-    case screen_timer_fog_display:
     case screen_timer_fog_start:  {
         sprintf_P(row1, PSTR("     Fog timer      "));
         sprintf_P(row2, PSTR("Timer: %.2d:%.2d        "), (int) fog_counter / 60, (int) fog_counter % 60);
         sprintf_P(row3, blankBuff);
-        sprintf_P(row4, PSTR("    %.5s      Abort"), screen == screen_timer_fog_display ? "Start" : "     ");
+        sprintf_P(row4, PSTR("               Abort"));
         delay(100);
         break;
       }
-    case screen_timer_oven_display:
     case screen_timer_oven_start: {
         sprintf_P(row1, PSTR("     Oven timer     "));
         sprintf_P(row2, PSTR("Timer: %.2d:%.2d        "), (int) oven_counter / 60, (int) oven_counter % 60);
         sprintf_P(row3, PSTR("Temp.: %5d        "), oven_temp);
-        sprintf_P(row4, PSTR("         %.5s Abort"), screen == screen_timer_oven_display ? "Start" : "     ");
+        sprintf_P(row4, PSTR("               Abort"));
         delay(100);
         break;
       }
-    case screen_complete: {
-        sprintf_P(row1, PSTR("   Cycle complete   "));
+    case screen_timer_fog_completed: {
+        sprintf_P(row1, PSTR("    Fog complete    "));
+        sprintf_P(row2, blankBuff);
+        sprintf_P(row3, blankBuff);
+        sprintf_P(row4, PSTR("Home                "));
+        delay(100);
+        break;
+      }
+    case screen_timer_oven_completed: {
+        sprintf_P(row1, PSTR("    Oven complete   "));
         sprintf_P(row2, blankBuff);
         sprintf_P(row3, blankBuff);
         sprintf_P(row4, PSTR("Home                "));
@@ -456,7 +425,6 @@ void screen_print() {
         delay(100);
         break;
       }
-
     case screen_reset_to_default : {
         sprintf_P(row1, PSTR(" Reset to default?  "));
         sprintf_P(row2, blankBuff);
