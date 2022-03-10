@@ -61,3 +61,6 @@
 - fog start confirm (screen_timer_fog_display) and oven start confirm (screen_timer_oven_display) screens removed
 - screen_complete removed as it is not used instead...
 - fog completed and oven completed screens added
+- default configs changed (default oven temp to 40 (before 34))
+- lcd from gpio removed instead lcd i2c controller used (hence esp32 problem may occure)
+- combine screen_home and screen_timer_select

@@ -5,7 +5,7 @@ const float ovenCurrentThreshold = 0.5;
 //settings default constants
 const int default_fog_counter      = 300; // 5min : 5 * 60
 const int default_oven_counter     = 480; // 8min : 8 * 60
-const int default_oven_temp        = 34;  //
+const int default_oven_temp        = 40;  //
 
 //eeprom address
 const byte fog_address      = 100;

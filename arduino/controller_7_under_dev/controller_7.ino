@@ -24,9 +24,7 @@ char row2[21];
 char row3[21];
 char row4[21];
 //counter
-unsigned int fog_counter   = 0; // working variable // max 5 min: 300 sec//display time as min:sec
-unsigned int oven_counter  = 0; // working variable // max 8 min: 480 sec//display time as min:sec
-unsigned int oven_temp     = 0; // working variable // max   cel:
+Config configCurrent = {0, 0, 0, 0};
 //log delay timer
 unsigned long last_logged_on = 0;
 
@@ -48,25 +46,12 @@ void loop() {
   screen_handle();
   screen_print();
 }
+
 void screen_handle() {
   switch (screen) {
-    //    case screen_home : {
-    //        if (command == i2c_set) {
-    //          command = i2c_null;
-    //          screen = screen_timer_select;
-    //        } else if (command == i2c_back) {
-    //          command = i2c_null;
-    //          screen = screen_config;
-    //        } else if (setButton.onRelease()) {
-    //          screen = screen_timer_select;
-    //        } else if (backButton.onRelease()) {
-    //          screen = screen_config;
-    //        }
-    //        break;
-    //      }
     case screen_timer_select : {
-        fog_counter = config_fog_counter;
-        oven_counter = config_oven_counter;
+        configCurrent.fogCounter  = configSettings.fogCounter;
+        configCurrent.ovenCounter = configSettings.fogCounter;
         if (command == i2c_dec) {
           command = i2c_null;
           screen = screen_timer_fog_start;
@@ -95,8 +80,8 @@ void screen_handle() {
       }
     case screen_timer_fog_start : {
         if (onMsDelayPass(1000)) {
-          if (fog_counter > 0) {
-            --fog_counter;
+          if (configCurrent.fogCounter > 0) {
+            --configCurrent.fogCounter;
             float _current = read_current(fogCurrentPin);
             if (_current < fogMotorCurrentThreshold) {
               screen = screen_error;
@@ -122,8 +107,8 @@ void screen_handle() {
         maintain_temperature();
 
         if (onMsDelayPass(1000)) {
-          if (oven_counter > 0) {
-            --oven_counter;
+          if (configCurrent.ovenCounter > 0) {
+            --configCurrent.ovenCounter;
             float _current = read_current(ovenCurrentPin);
             Serial.print("ovenRelay.state:");
             Serial.println(ovenRelay.value);
@@ -241,10 +226,10 @@ void config() {
           back_from_config();
         } else if (command == i2c_inc) {
           command = i2c_null;
-          config_fog_counter = config_fog_counter < max_fog_counter  ? config_fog_counter + 1 : 0;
+          configSettings.fogCounter = configSettings.fogCounter < configMax.fogCounter ? configSettings.fogCounter + 1 : 0;
         } else if (command == i2c_dec) {
           command = i2c_null;
-          config_fog_counter = config_fog_counter > 0 ? config_fog_counter - 1 : max_fog_counter;
+          configSettings.fogCounter = configSettings.fogCounter > 0 ? configSettings.fogCounter - 1 : configMax.fogCounter;
         } else if (setButton.onRelease()) {
           editIndex = edit_oven_timer;
         } else if (backButton.onRelease()) {
@@ -252,13 +237,13 @@ void config() {
         } else if (incButton.onPress()) {
           waitForButtonRelease();
           do {
-            config_fog_counter = config_fog_counter < max_fog_counter  ? config_fog_counter + 1 : 0;
+            configSettings.fogCounter = configSettings.fogCounter < configMax.fogCounter ? configSettings.fogCounter + 1 : 0;
             screen_print();
           } while (incButton.onPress());
         } else if (decButton.onPress()) {
           waitForButtonRelease();
           do {
-            config_fog_counter = config_fog_counter > 0 ? config_fog_counter - 1 : max_fog_counter;
+            configSettings.fogCounter = configSettings.fogCounter > 0 ? configSettings.fogCounter - 1 : configMax.fogCounter;
             screen_print();
           } while (decButton.onPress());
         }
@@ -273,10 +258,10 @@ void config() {
           back_from_config();
         } else if (command == i2c_inc) {
           command = i2c_null;
-          config_oven_counter = config_oven_counter < max_oven_counter ? config_oven_counter + 1 : 0;
+          configSettings.ovenCounter = configSettings.ovenCounter < configMax.ovenCounter ? configSettings.ovenCounter + 1 : 0;
         } else if (command == i2c_dec) {
           command = i2c_null;
-          config_oven_counter = config_oven_counter > 0 ? config_oven_counter - 1 : max_oven_counter;
+          configSettings.ovenCounter = configSettings.ovenCounter > 0 ? configSettings.ovenCounter - 1 : configMax.ovenCounter;
         } else if (setButton.onRelease()) {
           editIndex = edit_oven_temp;
         } else if (backButton.onRelease()) {
@@ -284,13 +269,13 @@ void config() {
         } else if (incButton.onPress()) {
           waitForButtonRelease();
           do {
-            config_oven_counter = config_oven_counter < max_oven_counter ? config_oven_counter + 1 : 0;
+            configSettings.ovenCounter = configSettings.ovenCounter < configMax.ovenCounter ? configSettings.ovenCounter + 1 : 0;
             screen_print();
           } while (incButton.onPress());
         } else if (decButton.onPress()) {
           waitForButtonRelease();
           do {
-            config_oven_counter = config_oven_counter > 0 ? config_oven_counter - 1 : max_oven_counter;
+            configSettings.ovenCounter = configSettings.ovenCounter > 0 ? configSettings.ovenCounter - 1 : configMax.ovenCounter;
             screen_print();
           } while (decButton.onPress());
         }
@@ -305,10 +290,10 @@ void config() {
           back_from_config();
         } else if (command == i2c_inc) {
           command = i2c_null;
-          config_oven_temp = config_oven_temp < max_oven_temp ? config_oven_temp + 1 : 0;
+          configSettings.ovenTemp = configSettings.ovenTemp < configMax.ovenTemp ? configSettings.ovenTemp + 1 : 0;
         } else if (command == i2c_dec) {
           command = i2c_null;
-          config_oven_temp = config_oven_temp > 0 ? config_oven_temp - 1 : max_oven_temp;
+          configSettings.ovenTemp = configSettings.ovenTemp > 0 ? configSettings.ovenTemp - 1 : configMax.ovenTemp;
         } if (setButton.onRelease()) {
           editIndex = edit_complete;
         } else if (backButton.onRelease()) {
@@ -316,13 +301,13 @@ void config() {
         } else if (incButton.onPress()) {
           waitForButtonRelease();
           do {
-            config_oven_temp = config_oven_temp < max_oven_temp ? config_oven_temp + 1 : 0;
+            configSettings.ovenTemp = configSettings.ovenTemp < configMax.ovenTemp ? configSettings.ovenTemp + 1 : 0;
             screen_print();
           } while (incButton.onPress());
         } else if (decButton.onPress()) {
           waitForButtonRelease();
           do {
-            config_oven_temp = config_oven_temp > 0 ? config_oven_temp - 1 : max_oven_temp;
+            configSettings.ovenTemp = configSettings.ovenTemp > 0 ? configSettings.ovenTemp - 1 : configMax.ovenTemp;
             screen_print();
           } while (decButton.onPress());
         }
@@ -353,14 +338,6 @@ void back_from_config() {
 
 void screen_print() {
   switch (screen) {
-    //    case screen_home: {
-    //        sprintf_P(row1, PSTR(" Unique Technology  "));
-    //        sprintf_P(row2, PSTR("       Sangli       "));
-    //        sprintf_P(row3, blankBuff);
-    //        sprintf_P(row4, PSTR("Start         Config"));
-    //        delay(100);
-    //        break;
-    //      }
     case screen_timer_select: {
         sprintf_P(row1, PSTR(" Unique Technology  "));
         sprintf_P(row2, PSTR("       Sangli       "));
@@ -370,15 +347,15 @@ void screen_print() {
       }
     case screen_timer_fog_start:  {
         sprintf_P(row1, PSTR("     Fog timer      "));
-        sprintf_P(row2, PSTR("Timer: %.2d:%.2d        "), (int) fog_counter / 60, (int) fog_counter % 60);
+        sprintf_P(row2, PSTR("Timer: %.2d:%.2d        "), (int) configCurrent.fogCounter / 60, (int) configCurrent.fogCounter % 60);
         sprintf_P(row3, blankBuff);
         sprintf_P(row4, PSTR("               Abort"));
         break;
       }
     case screen_timer_oven_start: {
         sprintf_P(row1, PSTR("     Oven timer     "));
-        sprintf_P(row2, PSTR("Timer: %.2d:%.2d        "), (int) oven_counter / 60, (int) oven_counter % 60);
-        sprintf_P(row3, PSTR("Temp.: %5d        "), oven_temp);
+        sprintf_P(row2, PSTR("Timer: %.2d:%.2d        "), (int) configCurrent.ovenCounter  / 60, (int) configCurrent.ovenCounter % 60);
+        sprintf_P(row3, PSTR("Temp.: %5d        "), configCurrent.ovenTemp);
         sprintf_P(row4, PSTR("               Abort"));
         break;
       }
@@ -399,18 +376,18 @@ void screen_print() {
     case screen_config: {
         sprintf_P(row1, PSTR("%.6s: %.4d Reset:+"),
                   editIndex == 0 ? ">Cycle" : "Cycle ",
-                  cycle_counter);
+                  configSettings.cycleCounter);
         sprintf_P(row2, PSTR("%.10s   : %.2d:%.2d"),
                   editIndex == edit_fog_timer ? ">Fog Timer" : "Fog Timer ",
-                  (int) config_fog_counter / 60,
-                  (int) config_fog_counter % 60);
+                  (int) configSettings.fogCounter / 60,
+                  (int) configSettings.fogCounter % 60);
         sprintf_P(row3, PSTR("%.11s  : %.2d:%.2d"),
                   editIndex == edit_oven_timer ? ">Oven Timer" : "Oven Timer ",
-                  (int) config_oven_counter / 60,
-                  (int) config_oven_counter % 60);
+                  (int) configSettings.ovenCounter / 60,
+                  (int) configSettings.ovenCounter % 60);
         sprintf_P(row4, PSTR("%.10s   : %.2d   "),
                   editIndex == edit_oven_temp ? ">Oven Temp" : "Oven Temp ",
-                  config_oven_temp);
+                  configSettings.ovenTemp);
         break;
       }
     case screen_reset_to_default : {
@@ -455,14 +432,14 @@ void screen_print() {
 void read_temperature() {
   float value = analogRead(temperaturePin);
   value = value * 500 / 1024; // equavalent voltage in v
-  oven_temp = (int) value;
+  configCurrent.ovenTemp = (int) value;
 }
 void maintain_temperature() {
-  int oven_start_temp = config_oven_temp - oven_temp_low_error;
+  int oven_start_temp = configSettings.ovenTemp - ovenTempThreshold;
   oven_start_temp = oven_start_temp >= 0 ? oven_start_temp : 0;
 
-  if ( oven_temp > config_oven_temp) ovenRelay.off();
-  else if (oven_temp < oven_start_temp) ovenRelay.on();
+  if ( configCurrent.ovenTemp > configSettings.ovenTemp) ovenRelay.off();
+  else if (configCurrent.ovenTemp < oven_start_temp) ovenRelay.on();
 }
 
 //ct current measurement
@@ -499,36 +476,36 @@ float getVPP(byte _pin) {              //for ac current measurement
 //eeprom and config
 void save() {
   Serial.println(F(">>> eeprom: saving config"));
-  EEPROM.put(fog_address, config_fog_counter);
-  EEPROM.put(oven_address, config_oven_counter);
-  EEPROM.put(cycle_address, cycle_counter);
-  EEPROM.put(oven_temp_address, config_oven_temp);
+  EEPROM.put(configAddress.fogCounter, configSettings.fogCounter);
+  EEPROM.put(configAddress.ovenCounter, configSettings.ovenCounter);
+  EEPROM.put(configAddress.cycleCounter, configSettings.cycleCounter);
+  EEPROM.put(configAddress.ovenTemp, configSettings.ovenTemp);
   Serial.println(F(">>> eeprom: saved config"));
 }
 void read() {
   Serial.println(F(">>> eeprom: reading config"));
-  EEPROM.get(fog_address, config_fog_counter);
-  EEPROM.get(oven_address, config_oven_counter);
-  EEPROM.get(cycle_address, cycle_counter);
-  EEPROM.get(oven_temp_address, config_oven_temp);
+  EEPROM.get(configAddress.fogCounter, configSettings.fogCounter);
+  EEPROM.get(configAddress.ovenCounter, configSettings.ovenCounter);
+  EEPROM.get(configAddress.cycleCounter, configSettings.cycleCounter);
+  EEPROM.get(configAddress.ovenTemp, configSettings.ovenTemp);
   Serial.println(F(">>> eeprom: read config"));
 }
 void reset_to_default() {
   Serial.println(F(">>> eeprom: reseting to default"));
-  config_fog_counter = default_fog_counter;
-  config_oven_counter = default_oven_counter;
-  config_oven_temp = default_oven_temp;
+  configSettings.fogCounter = configDefault.fogCounter;
+  configSettings.ovenCounter = configDefault.ovenCounter;
+  configSettings.ovenTemp = configDefault.ovenTemp;
   save();
   Serial.println(F(">>> eeprom: reset to default"));
 }
 
 //cycle counter
 void reset_cycle() {
-  cycle_counter = 0;
+  configCurrent.cycleCounter = 0;
   save();// save reset counter to eeprom
 }
 void increament_cycle() {
-  cycle_counter = cycle_counter < 10000 ? cycle_counter + 1 : 0;
+  configCurrent.cycleCounter = configCurrent.cycleCounter < 10000 ? configCurrent.cycleCounter + 1 : 0;
   save();// save increased counter to eeprom
 }
 
@@ -537,10 +514,10 @@ void receiveEvent(int howMany) {
   byte buff[howMany];
   Wire.readBytes(buff, howMany);
   if (howMany == 1) {
-    command = buff[0] == (int)i2c_inc ? i2c_inc
-              : buff[0] == (int)i2c_dec ? i2c_dec
-              : buff[0] == (int)i2c_set ? i2c_set
-              : buff[0] == (int)i2c_back ? i2c_back
-              : i2c_null;
+    command = buff[0] == (int)i2c_inc ? i2c_inc :
+              buff[0] == (int)i2c_dec ? i2c_dec :
+              buff[0] == (int)i2c_set ? i2c_set :
+              buff[0] == (int)i2c_back ? i2c_back :
+              i2c_null;
   }
 }
